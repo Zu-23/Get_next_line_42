@@ -81,7 +81,7 @@ void update_buff( int fd, char * buf, int buf_size, int index )
 
 char * get_next_line(int fd)
 {
-	static	char		buf[BUFF_SIZE];
+	static	char		*buf;
 	char				*line;
 	static int			start_index;
 	int i;
