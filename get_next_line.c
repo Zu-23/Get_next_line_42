@@ -1,11 +1,22 @@
-#include<stdio.h>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zhaddoum <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2022/04/10 15:07:57 by zhaddoum          #+#    #+#             */
+/*   Updated: 2022/04/12 20:57:45 by zhaddoum         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include<unistd.h>
 #include<stdlib.h>
-#include<fcntl.h>
-//#define BUFFER_SIZE 1
-int ftstrlen(char *str)
+#define BUFFER_SIZE 1
+
+ssize_t	ftstrlen(char *str)
 {
-	int	c;
+	ssize_t	c;
 
 	c = 0;
 	if (str == NULL)
@@ -15,101 +26,72 @@ int ftstrlen(char *str)
 	return (c);
 }
 
-void	treat_line(char **line_addr, char *buf, int end, int start)
+void	treat_line(char **line_addr, char *buf, ssize_t end, ssize_t start)
 {
-	char *tmp;
-	int len;
-	int i;
+	char	*tmp;
+	ssize_t	len;
+	ssize_t	i;
 
 	i = -1;
-	len = ftstrlen(*line_addr) ;
-	tmp = (char*) malloc(len + end - start + 1);
-
+	len = ftstrlen(*line_addr);
+	tmp = (char *) malloc(len + end - start + 1);
+	if (!tmp)
+		return ;
 	while (++i < len)
 		tmp[i] = (*line_addr)[i];
 	free(*line_addr);
 	len = start;
-	while (len < end )
-	{
-		tmp[i] = buf[len];
-		i++;
-		len++;
-	}
+	while (len < end)
+		tmp[i++] = buf[len++];
 	tmp[i] = '\0';
-
 	*line_addr = tmp;
-    if (i==0)
-        *line_addr = NULL;
+	if (i == 0)
+	{
+		free(*line_addr);
+		*line_addr = NULL;
+	}
 }
 
-void	read_buf(int fd, char *buf, int buf_size)
+int	read_buf(int fd, char *buf, ssize_t	buf_size, ssize_t i)
 {
-	int r;
+	ssize_t	r;
 
-	r = read(fd, buf, buf_size);
-	if (r < buf_size)
-		buf[r] = '\0';
+	if (i == 0)
+	{
+		r = read(fd, buf, buf_size);
+		if (r == -1)
+			return (-1);
+		else if (r < buf_size)
+			buf[r] = '\0';
+	}
+	return (0);
 }
-// void	treat_line(char **line_addr, char *buf, int ndx)
-// {
-// 	char *tmp;
-// 	int	len;
-// 	int	c;
-	
-// 	c = 0;
-// 	len = ftstrlen(*line_addr);
-// 	tmp = (char*)malloc(len + ndx + 1);
-// 	if (len != 0)
-// 	{
-// 		len = 0;
-// 		while (*line_addr[len] != '\0')
-// 		{
-// 			tmp[len] = *line_addr[len];
-// 			len++;
-// 		}
-// 		//*line_addr = NULL;
-// 		while (c <= ndx)
-// 		{
-// 			tmp[len] = buf[c];
-// 			len++;
-// 			c++;
-// 		}
-// 		line_addr = &tmp;
-// 	}
-// 	else
-// 	{
-// 		while(len <= ndx)
-// 		{
-// 			tmp[len] = buf[len];
-// 			len++;
-// 		}
-// 		line_addr = &tmp;
-// 	}
-// }
 
-char *get_next_line(int fd)
+char	*get_next_line(int fd)
 {
+	static ssize_t	index;
+	ssize_t			i;
 	static char		buf[BUFFER_SIZE];
-	static int		index;
 	char			*line;
-	static int		i;
-	line = NULL;
 
+	line = NULL;
 	i = index;
+	if (fd < 0 || BUFFER_SIZE <= 0)
+		return (NULL);
 	while (1)
 	{
 		if (i == BUFFER_SIZE)
 		{
-			treat_line(&line,buf,i,index);
+			treat_line(&line, buf, i, index);
 			index = 0;
 			i = 0;
 		}
-		if (i == 0)
-			read_buf(fd,buf,BUFFER_SIZE);
+		if (read_buf(fd, buf, BUFFER_SIZE, i) == -1)
+			return (NULL);
 		if (buf[i] == '\0' || buf[i++] == '\n')
-			break;
+			break ;
 	}
-	treat_line(&line,buf,i,index);
+	treat_line(&line, buf, i, index);
 	index = i;
 	return (line);
 }
